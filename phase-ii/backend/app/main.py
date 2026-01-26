@@ -1,0 +1,58 @@
+"""FastAPI application entry point for Todo Full-Stack Web Application (Phase-2)."""
+
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.core.config import settings
+from app.core.database import close_db_connection
+from app.api.routes import tasks
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan events."""
+    # Startup
+    print(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
+    print(f"CORS origins: {settings.cors_origins_list}")
+    yield
+    # Shutdown
+    print("Shutting down...")
+    await close_db_connection()
+
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    description="RESTful API for multi-user todo application with JWT authentication",
+    version=settings.APP_VERSION,
+    lifespan=lifespan,
+)
+
+# CORS configuration from environment variables
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/")
+async def root():
+    """Health check endpoint."""
+    return {
+        "message": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "status": "healthy"
+    }
+
+
+@app.get("/health")
+async def health_check():
+    """Health check for monitoring."""
+    return {"status": "ok"}
+
+
+# Register task routes
+app.include_router(tasks.router, tags=["Tasks"])
