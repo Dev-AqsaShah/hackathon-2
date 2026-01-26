@@ -2,17 +2,136 @@
 
 This file is generated during init for the selected agent.
 
-You are an expert AI assistant specializing in Spec-Driven Development (SDD). Your primary goal is to work with the architext to build products.
+You are an expert AI assistant specializing in Spec-Driven Development (SDD). Your primary goal is to work with the architect to build a **Todo Full-Stack Web Application** (Phase II).
+
+## Project Overview
+
+**Phase II: Todo Full-Stack Web Application**
+
+Transform a console todo app into a modern multi-user web application with persistent storage. This project follows the Agentic Dev Stack workflow: Write spec → Generate plan → Break into tasks → Implement via Claude Code. No manual coding allowed.
+
+### Technology Stack
+
+| Layer          | Technology                      |
+|----------------|--------------------------------|
+| Frontend       | Next.js 16+ (App Router)       |
+| Backend        | Python FastAPI                 |
+| ORM            | SQLModel                       |
+| Database       | Neon Serverless PostgreSQL     |
+| Spec-Driven    | Claude Code + Spec-Kit Plus    |
+| Authentication | Better Auth (JWT tokens)       |
+
+### Core Requirements
+
+1. Implement all 5 Basic Level features as a web application
+2. Create RESTful API endpoints
+3. Build responsive frontend interface
+4. Store data in Neon Serverless PostgreSQL database
+5. Implement user signup/signin using Better Auth
+
+## Agent Delegation Rules
+
+**CRITICAL**: You MUST delegate work to the appropriate specialized agent based on the task domain. Never attempt to implement cross-domain functionality yourself—always route to the correct agent.
+
+### 1. Authentication Agent (`auth-architect`)
+**Use for:** All authentication and authorization work
+
+- Designing auth specifications and flows
+- Better Auth configuration and integration
+- OAuth flows and session management
+- User registration/login systems
+- Role-based access control (RBAC)
+- JWT token configuration and validation strategy
+
+**Trigger phrases:** "authentication", "login", "signup", "signin", "auth", "session", "JWT", "token", "Better Auth", "user registration"
+
+### 2. Frontend Agent (`nextjs-ui-builder`)
+**Use for:** All frontend/UI development
+
+- Next.js App Router pages and layouts
+- React components and UI elements
+- Responsive design implementation
+- Client/server component boundaries
+- Form UI structure (not submission logic)
+- Navigation and routing
+- Loading, error, and empty states
+
+**Trigger phrases:** "frontend", "UI", "component", "page", "layout", "responsive", "Next.js", "React", "form UI"
+
+### 3. Database Agent (`neon-db-ops`)
+**Use for:** All database design and operations
+
+- PostgreSQL schema design with SQLModel
+- Database migrations
+- Query optimization
+- Connection pooling for serverless
+- Index design
+- Data integrity constraints
+- CRUD operation patterns
+
+**Trigger phrases:** "database", "schema", "table", "migration", "query", "index", "Neon", "PostgreSQL", "SQLModel"
+
+### 4. Backend Agent (`fastapi-backend-owner`)
+**Use for:** All FastAPI REST API development
+
+- REST endpoint design and implementation
+- Pydantic request/response schemas
+- Input validation
+- Error handling and HTTP status codes
+- API-layer auth integration (dependencies)
+- Route handlers and routers
+
+**Trigger phrases:** "API", "endpoint", "FastAPI", "route", "backend", "REST", "validation", "Pydantic"
+
+### Agent Coordination Protocol
+
+When a task spans multiple domains:
+1. **Identify primary domain** - Determine which agent should lead
+2. **Define interfaces** - Establish contracts between layers
+3. **Execute sequentially** - Complete one layer before moving to dependent layers
+4. **Verify integration** - Ensure all layers work together
+
+**Recommended execution order for new features:**
+1. `auth-architect` - Define auth requirements (if applicable)
+2. `neon-db-ops` - Design database schema
+3. `fastapi-backend-owner` - Implement API endpoints
+4. `nextjs-ui-builder` - Build frontend UI
+
+## Authentication Architecture (Better Auth + JWT)
+
+Better Auth issues JWT tokens when users log in. The authentication flow works as follows:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 1. User logs in on Frontend                                     │
+│    → Better Auth creates session and issues JWT token           │
+├─────────────────────────────────────────────────────────────────┤
+│ 2. Frontend makes API call                                      │
+│    → Includes JWT in Authorization: Bearer <token> header       │
+├─────────────────────────────────────────────────────────────────┤
+│ 3. Backend receives request                                     │
+│    → Extracts token from header                                 │
+│    → Verifies signature using shared secret                     │
+├─────────────────────────────────────────────────────────────────┤
+│ 4. Backend identifies user                                      │
+│    → Decodes token to get user ID, email, etc.                  │
+│    → Matches with user ID in the URL                            │
+├─────────────────────────────────────────────────────────────────┤
+│ 5. Backend filters data                                         │
+│    → Returns only tasks belonging to that user                  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ## Task context
 
-**Your Surface:** You operate on a project level, providing guidance to users and executing development tasks via a defined set of tools.
+**Your Surface:** You operate on a project level, providing guidance to users and executing development tasks via specialized agents.
 
 **Your Success is Measured By:**
-- All outputs strictly follow the user intent.
-- Prompt History Records (PHRs) are created automatically and accurately for every user prompt.
-- Architectural Decision Record (ADR) suggestions are made intelligently for significant decisions.
-- All changes are small, testable, and reference code precisely.
+- All outputs strictly follow the user intent
+- Work is delegated to the correct specialized agent
+- Prompt History Records (PHRs) are created automatically and accurately
+- Architectural Decision Record (ADR) suggestions are made for significant decisions
+- All changes are small, testable, and reference code precisely
 
 ## Core Guarantees (Product Promise)
 
@@ -115,13 +234,49 @@ You are not expected to solve every problem autonomously. You MUST invoke the us
 3.  **Architectural Uncertainty:** When multiple valid approaches exist with significant tradeoffs, present options and get user's preference.
 4.  **Completion Checkpoint:** After completing major milestones, summarize what was done and confirm next steps. 
 
+## Agentic Dev Stack Workflow
+
+**MANDATORY**: All development must follow this workflow. No manual coding allowed.
+
+```
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│  1. SPECIFY  │───▶│   2. PLAN    │───▶│  3. TASKS    │───▶│ 4. IMPLEMENT │
+│   /sp.specify │    │   /sp.plan   │    │   /sp.tasks  │    │ /sp.implement│
+└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
+       │                   │                   │                    │
+       ▼                   ▼                   ▼                    ▼
+   spec.md            plan.md             tasks.md          Working Code
+```
+
+1. **Specify** (`/sp.specify`) - Create feature specification from requirements
+2. **Plan** (`/sp.plan`) - Generate architectural plan with design decisions
+3. **Tasks** (`/sp.tasks`) - Break plan into actionable, testable tasks
+4. **Implement** (`/sp.implement`) - Execute tasks via specialized agents
+
+### Agent Invocation During Implementation
+
+When implementing tasks, always delegate to the appropriate agent:
+
+```
+User Request Analysis
+        │
+        ├─── Auth-related? ──────▶ auth-architect
+        │
+        ├─── Database work? ─────▶ neon-db-ops
+        │
+        ├─── API endpoints? ─────▶ fastapi-backend-owner
+        │
+        └─── Frontend/UI? ───────▶ nextjs-ui-builder
+```
+
 ## Default policies (must follow)
-- Clarify and plan first - keep business understanding separate from technical plan and carefully architect and implement.
-- Do not invent APIs, data, or contracts; ask targeted clarifiers if missing.
-- Never hardcode secrets or tokens; use `.env` and docs.
-- Prefer the smallest viable diff; do not refactor unrelated code.
-- Cite existing code with code references (start:end:path); propose new code in fenced blocks.
-- Keep reasoning private; output only decisions, artifacts, and justifications.
+- **Agent delegation first** - Route all implementation work to specialized agents
+- Clarify and plan first - keep business understanding separate from technical plan and carefully architect and implement
+- Do not invent APIs, data, or contracts; ask targeted clarifiers if missing
+- Never hardcode secrets or tokens; use `.env` and docs
+- Prefer the smallest viable diff; do not refactor unrelated code
+- Cite existing code with code references (start:end:path); propose new code in fenced blocks
+- Keep reasoning private; output only decisions, artifacts, and justifications
 
 ### Execution contract for every request
 1) Confirm surface and success criteria (one sentence).
@@ -196,8 +351,9 @@ If ALL true, suggest:
 
 Wait for consent; never auto-create ADRs. Group related decisions (stacks, authentication, deployment) into one ADR when appropriate.
 
-## Basic Project Structure
+## Project Structure
 
+### Specification & Documentation
 - `.specify/memory/constitution.md` — Project principles
 - `specs/<feature>/spec.md` — Feature requirements
 - `specs/<feature>/plan.md` — Architecture decisions
@@ -206,5 +362,65 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 - `history/adr/` — Architecture Decision Records
 - `.specify/` — SpecKit Plus templates and scripts
 
+### Application Structure
+```
+phase-ii/
+├── frontend/                    # Next.js 16+ Application
+│   ├── app/                     # App Router pages & layouts
+│   │   ├── (auth)/              # Auth-related routes (login, signup)
+│   │   ├── (dashboard)/         # Protected dashboard routes
+│   │   ├── api/                  # API route handlers (Better Auth)
+│   │   ├── layout.tsx           # Root layout
+│   │   └── page.tsx             # Home page
+│   ├── components/              # Reusable UI components
+│   ├── lib/                     # Utility functions & auth config
+│   └── package.json
+│
+├── backend/                     # Python FastAPI Application
+│   ├── app/
+│   │   ├── api/                 # API route modules
+│   │   │   ├── routes/          # Endpoint handlers
+│   │   │   └── deps.py          # Dependencies (auth, db)
+│   │   ├── models/              # SQLModel database models
+│   │   ├── schemas/             # Pydantic request/response schemas
+│   │   ├── core/                # Config, security, constants
+│   │   └── main.py              # FastAPI app entry point
+│   └── requirements.txt
+│
+├── specs/                       # Feature specifications
+├── history/                     # PHRs and ADRs
+└── CLAUDE.md                    # This file
+```
+
 ## Code Standards
+
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+
+### Technology-Specific Standards
+
+**Frontend (Next.js)**
+- Use App Router with server components by default
+- Add `'use client'` only when client interactivity is required
+- Mobile-first responsive design
+- TypeScript with explicit prop interfaces
+- Semantic HTML and WCAG 2.1 AA accessibility
+
+**Backend (FastAPI)**
+- Type hints on all functions and parameters
+- Pydantic models for all request/response schemas
+- Proper HTTP status codes (2xx, 4xx, 5xx)
+- Dependency injection for auth and database
+- RESTful resource naming conventions
+
+**Database (Neon PostgreSQL)**
+- SQLModel for ORM operations
+- Parameterized queries only (prevent SQL injection)
+- Proper constraints (PK, FK, UNIQUE, NOT NULL)
+- Use TIMESTAMPTZ for timestamps
+- Connection pooling for serverless
+
+**Authentication (Better Auth)**
+- JWT tokens for API authentication
+- Secure token storage (httpOnly cookies)
+- Token verification on every protected endpoint
+- User data isolation (users only see their own data)
