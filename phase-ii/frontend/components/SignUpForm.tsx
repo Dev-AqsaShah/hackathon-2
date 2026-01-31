@@ -8,21 +8,22 @@
  * - Client-side validation (email format, password min 8 chars)
  * - Loading state during API call
  * - Error handling and display
- * - Redirect to /signin after successful signup
- * - Mobile-first responsive design
+ * - Uses Better Auth for user registration
+ * - Redirect to /dashboard after successful signup
  */
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { authClient } from '@/lib/auth-client';
+import { signUp } from '@/lib/auth-client';
 
 export function SignUpForm() {
   const router = useRouter();
 
   // Form state
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
 
@@ -52,7 +53,11 @@ export function SignUpForm() {
     setApiError('');
 
     // Client-side validation
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: { name?: string; email?: string; password?: string } = {};
+
+    if (!name) {
+      newErrors.name = 'Name is required';
+    }
 
     if (!email) {
       newErrors.email = 'Email is required';
@@ -71,29 +76,25 @@ export function SignUpForm() {
       return;
     }
 
-    // Call Better Auth signup API
+    // Use Better Auth signUp
     setLoading(true);
     try {
-      await authClient.signUp.email({
+      const result = await signUp.email({
         email,
         password,
-        name: email.split('@')[0], // Use email prefix as default name
+        name,
       });
 
-      // Redirect to signin page after successful signup
-      router.push('/signin');
-    } catch (error: any) {
-      // Handle API errors
-      console.error('Signup error:', error);
-
-      // Display user-friendly error message
-      if (error.message?.includes('already exists')) {
-        setApiError('An account with this email already exists. Please sign in instead.');
-      } else if (error.message?.includes('invalid email')) {
-        setApiError('Invalid email address. Please check and try again.');
-      } else {
-        setApiError('Failed to create account. Please try again later.');
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to create account');
       }
+
+      // Redirect to dashboard after successful signup
+      router.push('/dashboard');
+      router.refresh();
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      setApiError(error.message || 'Failed to create account. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -112,6 +113,27 @@ export function SignUpForm() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Name Input */}
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+            Name
+          </label>
+          <input
+            id="name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={loading}
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+              errors.name ? 'border-red-500' : 'border-gray-300'
+            }`}
+            placeholder="John Doe"
+          />
+          {errors.name && (
+            <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+          )}
+        </div>
+
         {/* Email Input */}
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -147,7 +169,7 @@ export function SignUpForm() {
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
               errors.password ? 'border-red-500' : 'border-gray-300'
             }`}
-            placeholder="••••••••"
+            placeholder="********"
           />
           {errors.password && (
             <p className="mt-1 text-sm text-red-600">{errors.password}</p>
@@ -180,7 +202,7 @@ export function SignUpForm() {
       {/* Link to Signin */}
       <p className="mt-4 text-center text-sm text-gray-600">
         Already have an account?{' '}
-        <a href="/signin" className="text-primary-600 hover:text-primary-700 font-medium">
+        <a href="/login" className="text-primary-600 hover:text-primary-700 font-medium">
           Sign in
         </a>
       </p>

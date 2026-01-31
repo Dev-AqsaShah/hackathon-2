@@ -8,13 +8,13 @@
  * - Client-side validation (email format, password required)
  * - Loading state during API call
  * - Error handling and display
+ * - Uses Better Auth for authentication
  * - Redirect to /dashboard after successful signin
- * - Mobile-first responsive design
  */
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { authClient } from '@/lib/auth-client';
+import { signIn } from '@/lib/auth-client';
 
 export function SignInForm() {
   const router = useRouter();
@@ -62,27 +62,29 @@ export function SignInForm() {
       return;
     }
 
-    // Call Better Auth signin API
+    // Use Better Auth signIn
     setLoading(true);
     try {
-      await authClient.signIn.email({
+      const result = await signIn.email({
         email,
         password,
       });
 
+      if (result.error) {
+        throw new Error(result.error.message || 'Invalid credentials');
+      }
+
       // Redirect to dashboard after successful signin
       router.push('/dashboard');
+      router.refresh();
     } catch (error: any) {
-      // Handle API errors
       console.error('Signin error:', error);
 
       // Display user-friendly error message
-      if (error.message?.includes('Invalid credentials') || error.message?.includes('not found')) {
+      if (error.message?.includes('Invalid') || error.message?.includes('not found') || error.message?.includes('credentials')) {
         setApiError('Invalid email or password. Please check your credentials and try again.');
-      } else if (error.message?.includes('Account not found')) {
-        setApiError('No account found with this email. Please sign up first.');
       } else {
-        setApiError('Failed to sign in. Please try again later.');
+        setApiError(error.message || 'Failed to sign in. Please try again later.');
       }
     } finally {
       setLoading(false);
@@ -137,7 +139,7 @@ export function SignInForm() {
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
               errors.password ? 'border-red-500' : 'border-gray-300'
             }`}
-            placeholder="••••••••"
+            placeholder="********"
           />
           {errors.password && (
             <p className="mt-1 text-sm text-red-600">{errors.password}</p>

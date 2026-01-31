@@ -1,26 +1,26 @@
 'use client';
 
 /**
- * TaskForm Component - Reusable Task Creation/Edit Form
+ * Premium TaskForm Component
  *
  * Features:
+ * - Dark theme styling
  * - Title and description inputs with validation
- * - Client-side validation (title required, max lengths)
- * - Loading state during API call
- * - Error handling and display
- * - Cancel button
- * - Mobile-first responsive design
+ * - Character counters
+ * - Loading states
+ * - Error handling
+ * - Responsive design
  */
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiClient } from '@/lib/api-client';
 import { validateTaskForm } from '@/lib/validation';
 import { TaskCreateInput, Task } from '@/types/task';
+import { Button } from '@/components/ui/Button';
 
 interface TaskFormProps {
   initialData?: Task;
-  userId: number;
+  userId: string | number;
   mode: 'create' | 'edit';
 }
 
@@ -58,35 +58,45 @@ export function TaskForm({ initialData, userId, mode }: TaskFormProps) {
       return;
     }
 
-    // Call API
+    // Call Next.js API routes (which proxy to the backend with JWT auth)
     setLoading(true);
     try {
       if (mode === 'create') {
-        // Create new task
-        const response = await apiClient.post<Task>(
-          `/api/${userId}/tasks`,
-          formData
-        );
+        // Create new task via Next.js API route
+        const response = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
 
-        if (response.error) {
-          throw new Error(response.error.detail || 'Failed to create task');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Failed to create task');
         }
 
         // Redirect to dashboard
         router.push('/dashboard');
+        router.refresh();
       } else {
-        // Edit existing task (will implement in US5)
-        const response = await apiClient.put<Task>(
-          `/api/${userId}/tasks/${initialData!.id}`,
-          formData
-        );
+        // Edit existing task via Next.js API route
+        const response = await fetch(`/api/tasks/${initialData!.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
 
-        if (response.error) {
-          throw new Error(response.error.detail || 'Failed to update task');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Failed to update task');
         }
 
         // Redirect to dashboard
         router.push('/dashboard');
+        router.refresh();
       }
     } catch (error: any) {
       console.error('Task form error:', error);
@@ -94,7 +104,7 @@ export function TaskForm({ initialData, userId, mode }: TaskFormProps) {
       // Handle API errors
       if (error.message?.includes('Unauthorized')) {
         setApiError('Session expired. Please sign in again.');
-        setTimeout(() => router.push('/signin'), 2000);
+        setTimeout(() => router.push('/login'), 2000);
       } else if (error.message?.includes('422')) {
         setApiError('Validation error. Please check your inputs.');
       } else {
@@ -112,99 +122,170 @@ export function TaskForm({ initialData, userId, mode }: TaskFormProps) {
     router.push('/dashboard');
   };
 
-  return (
-    <div className="w-full max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">
-        {mode === 'create' ? 'Create New Task' : 'Edit Task'}
-      </h1>
+  const titleMaxLength = 1000;
+  const descriptionMaxLength = 5000;
 
-      {apiError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-sm text-red-600">{apiError}</p>
+  return (
+    <div className="w-full max-w-2xl mx-auto">
+      <div className="glass-card p-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-dark-100">
+            {mode === 'create' ? 'Create New Task' : 'Edit Task'}
+          </h1>
+          <p className="mt-1 text-dark-400">
+            {mode === 'create'
+              ? 'Add a new task to your list'
+              : 'Update your task details'}
+          </p>
+        </div>
+
+        {/* API Error */}
+        {apiError && (
+          <div className="mb-6 p-4 rounded-xl bg-error-500/10 border border-error-500/30 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-error-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sm text-error-400">{apiError}</p>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Title Input */}
+          <div>
+            <label htmlFor="title" className="block text-sm font-medium text-dark-300 mb-2">
+              Task Title <span className="text-error-400">*</span>
+            </label>
+            <div className="relative">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-dark-500">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+              <input
+                id="title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                disabled={loading}
+                maxLength={titleMaxLength}
+                placeholder="What needs to be done?"
+                className={`
+                  w-full h-12 pl-12 pr-4 rounded-xl
+                  border bg-dark-800/50 backdrop-blur-sm
+                  text-dark-100 placeholder:text-dark-500
+                  transition-all duration-200
+                  focus:outline-none focus:ring-2 focus:ring-offset-0
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  ${errors.title
+                    ? 'border-error-500/50 focus:ring-error-500/50'
+                    : 'border-dark-700 focus:ring-accent-500/50 focus:border-accent-500/50'
+                  }
+                `}
+              />
+            </div>
+            <div className="flex justify-between items-center mt-2">
+              <div>
+                {errors.title && (
+                  <p className="text-sm text-error-400">{errors.title}</p>
+                )}
+              </div>
+              <p className={`text-xs ${
+                title.length >= titleMaxLength ? 'text-error-400' : 'text-dark-500'
+              }`}>
+                {title.length}/{titleMaxLength}
+              </p>
+            </div>
+          </div>
+
+          {/* Description Textarea */}
+          <div>
+            <label htmlFor="description" className="block text-sm font-medium text-dark-300 mb-2">
+              Description <span className="text-dark-500">(optional)</span>
+            </label>
+            <div className="relative">
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                disabled={loading}
+                maxLength={descriptionMaxLength}
+                rows={5}
+                placeholder="Add more details about this task..."
+                className={`
+                  w-full px-4 py-3 rounded-xl
+                  border bg-dark-800/50 backdrop-blur-sm
+                  text-dark-100 placeholder:text-dark-500
+                  transition-all duration-200 resize-none
+                  focus:outline-none focus:ring-2 focus:ring-offset-0
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  ${errors.description
+                    ? 'border-error-500/50 focus:ring-error-500/50'
+                    : 'border-dark-700 focus:ring-accent-500/50 focus:border-accent-500/50'
+                  }
+                `}
+              />
+            </div>
+            <div className="flex justify-between items-center mt-2">
+              <div>
+                {errors.description && (
+                  <p className="text-sm text-error-400">{errors.description}</p>
+                )}
+              </div>
+              <p className={`text-xs ${
+                description.length >= descriptionMaxLength ? 'text-error-400' : 'text-dark-500'
+              }`}>
+                {description.length}/{descriptionMaxLength}
+              </p>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              fullWidth
+              onClick={handleCancel}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              size="lg"
+              fullWidth
+              isLoading={loading}
+              loadingText={mode === 'create' ? 'Creating...' : 'Saving...'}
+            >
+              {mode === 'create' ? 'Create Task' : 'Save Changes'}
+            </Button>
+          </div>
+        </form>
+      </div>
+
+      {/* Tips section for create mode */}
+      {mode === 'create' && (
+        <div className="mt-6 p-5 rounded-2xl bg-dark-800/30 border border-dark-700/30">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-accent-500/20 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-accent-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-dark-300">Pro tip</p>
+              <p className="mt-1 text-xs text-dark-500">
+                Be specific with your task titles. Instead of "Work on project", try "Write introduction section for Q4 report".
+                Clear tasks are easier to complete!
+              </p>
+            </div>
+          </div>
         </div>
       )}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Title Input */}
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-            Title <span className="text-red-500">*</span>
-          </label>
-          <input
-            id="title"
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            disabled={loading}
-            maxLength={1000}
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-              errors.title ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Enter task title"
-          />
-          {errors.title && (
-            <p className="mt-1 text-sm text-red-600">{errors.title}</p>
-          )}
-          <p className="mt-1 text-xs text-gray-500">
-            {title.length}/1000 characters
-          </p>
-        </div>
-
-        {/* Description Textarea */}
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-            Description (optional)
-          </label>
-          <textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            disabled={loading}
-            maxLength={5000}
-            rows={6}
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none ${
-              errors.description ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Enter task description (optional)"
-          />
-          {errors.description && (
-            <p className="mt-1 text-sm text-red-600">{errors.description}</p>
-          )}
-          <p className="mt-1 text-xs text-gray-500">
-            {description.length}/5000 characters
-          </p>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex space-x-4">
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 py-2 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                {mode === 'create' ? 'Creating...' : 'Saving...'}
-              </span>
-            ) : (
-              mode === 'create' ? 'Create Task' : 'Save Changes'
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleCancel}
-            disabled={loading}
-            className="flex-1 py-2 px-4 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
     </div>
   );
 }

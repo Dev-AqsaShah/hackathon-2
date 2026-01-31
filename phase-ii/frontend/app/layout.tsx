@@ -1,14 +1,15 @@
 /**
- * Root layout with Better Auth provider and HTML structure.
+ * Root layout with Better Auth provider, Toast provider, and HTML structure.
  */
 
 import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/components/auth/AuthProvider';
+import { ToastProvider } from '@/components/ui/Toast';
 
 export const metadata: Metadata = {
-  title: 'Todo Full-Stack App',
-  description: 'Multi-user todo application with JWT authentication',
+  title: 'TaskFlow - Modern Task Management',
+  description: 'A premium multi-user task management application',
 };
 
 export default function RootLayout({
@@ -17,10 +18,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-gray-50">
+    <html lang="en" className="dark">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
+      <body className="min-h-screen antialiased">
         <AuthProvider>
-          <main>{children}</main>
+          <ToastProvider>
+            <main className="min-h-screen">{children}</main>
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

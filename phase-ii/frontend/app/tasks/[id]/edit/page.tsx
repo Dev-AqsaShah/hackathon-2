@@ -1,22 +1,80 @@
 /**
- * Premium Task Creation Page
+ * Task Edit Page
  *
  * Features:
- * - Dark theme styling
+ * - Fetches existing task data
+ * - Reuses TaskForm in edit mode
  * - Protected route
  * - Consistent header with dashboard
  */
 
-import { redirect } from 'next/navigation';
+import { redirect, notFound } from 'next/navigation';
 import { headers } from 'next/headers';
+import * as jose from 'jose';
 import { auth } from '@/lib/auth';
 import { TaskForm } from '@/components/TaskForm';
+import { Task } from '@/types/task';
 import Link from 'next/link';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-export default async function CreateTaskPage() {
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+/**
+ * Create a JWT token for backend authentication.
+ */
+async function createToken(userId: string, email?: string): Promise<string> {
+  const secret = new TextEncoder().encode(process.env.BETTER_AUTH_SECRET || '');
+
+  const token = await new jose.SignJWT({
+    sub: userId,
+    email: email || undefined,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('1h')
+    .sign(secret);
+
+  return token;
+}
+
+/**
+ * Fetch a single task from the backend API.
+ */
+async function getTask(userId: string, taskId: string, email?: string): Promise<Task | null> {
+  try {
+    const token = await createToken(userId, email);
+
+    const response = await fetch(`${BACKEND_URL}/api/${userId}/tasks/${taskId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      console.error('Failed to fetch task:', response.status);
+      return null;
+    }
+
+    const task: Task = await response.json();
+    return task;
+  } catch (error) {
+    console.error('Failed to fetch task:', error);
+    return null;
+  }
+}
+
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
+
+export default async function EditTaskPage({ params }: PageProps) {
+  const { id: taskId } = await params;
+
   // Get session from Better Auth
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -29,6 +87,13 @@ export default async function CreateTaskPage() {
   const userId = session.user.id;
   const email = session.user.email;
   const name = session.user.name || email?.split('@')[0] || 'User';
+
+  // Fetch the task
+  const task = await getTask(userId, taskId, email);
+
+  if (!task) {
+    notFound();
+  }
 
   return (
     <div className="min-h-screen">
@@ -73,7 +138,7 @@ export default async function CreateTaskPage() {
       {/* Main Content */}
       <main className="py-12 px-4 sm:px-6 lg:px-8">
         <div className="animate-fade-in-up">
-          <TaskForm userId={userId} mode="create" />
+          <TaskForm userId={userId} mode="edit" initialData={task} />
         </div>
       </main>
     </div>

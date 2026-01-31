@@ -2,26 +2,22 @@
  * Home page - redirects to login or dashboard based on auth status.
  */
 
-'use client';
+import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
+import { auth } from '@/lib/auth';
 
-import { useSession } from '@/lib/auth-client';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { Loading } from '@/components/ui/Loading';
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
 
-export default function HomePage() {
-  const { data: session, isPending } = useSession();
-  const router = useRouter();
+export default async function HomePage() {
+  // Get session from Better Auth
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-  useEffect(() => {
-    if (!isPending) {
-      if (session?.user) {
-        router.push('/dashboard');
-      } else {
-        router.push('/login');
-      }
-    }
-  }, [session, isPending, router]);
-
-  return <Loading size="lg" message="Loading..." />;
+  if (session?.user) {
+    redirect('/dashboard');
+  } else {
+    redirect('/login');
+  }
 }
