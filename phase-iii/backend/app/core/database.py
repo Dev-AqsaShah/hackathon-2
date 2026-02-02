@@ -9,6 +9,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession as SQLModelAsyncSession
 from app.core.config import settings
 
 # Create async engine with connection pooling for Neon Serverless PostgreSQL
+# Note: asyncpg handles SSL via the connection string (sslmode=require)
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,  # Log SQL queries in debug mode
@@ -17,12 +18,6 @@ engine = create_async_engine(
     max_overflow=10,  # Allow burst connections
     pool_pre_ping=True,  # Verify connections before use
     pool_recycle=3600,  # Recycle connections after 1 hour
-    connect_args={
-        "ssl": "require",  # Enable SSL for Neon PostgreSQL
-        "server_settings": {
-            "jit": "off"  # Disable JIT for better compatibility
-        }
-    }
 )
 
 # Create async session factory

@@ -14,6 +14,8 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    // Disable Turbopack to avoid Windows junction point issues
+    turbo: false,
   },
 
   // API proxy configuration (if needed for CORS bypass in development)

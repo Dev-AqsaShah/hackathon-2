@@ -95,13 +95,18 @@ module.exports = {
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',
-        'fade-in-up': 'fadeInUp 0.4s ease-out',
+        'fade-in-up': 'fadeInUp 0.4s ease-out forwards',
         'slide-in-right': 'slideInRight 0.3s ease-out',
         'slide-out-right': 'slideOutRight 0.3s ease-in',
         'pulse-soft': 'pulseSoft 2s infinite',
         'shimmer': 'shimmer 2s infinite',
         'check': 'check 0.3s ease-out forwards',
         'scale-in': 'scaleIn 0.2s ease-out',
+        'float': 'float 3s ease-in-out infinite',
+        'float-delayed': 'float 3s ease-in-out infinite 1.5s',
+        'particle': 'particle 10s linear infinite',
+        'message-in': 'messageIn 0.3s ease-out forwards',
+        'equalizer': 'equalizer 0.5s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -136,6 +141,24 @@ module.exports = {
         scaleIn: {
           '0%': { transform: 'scale(0.95)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        particle: {
+          '0%': { transform: 'translateY(0) translateX(0)', opacity: '0' },
+          '10%': { opacity: '1' },
+          '90%': { opacity: '1' },
+          '100%': { transform: 'translateY(-100vh) translateX(20px)', opacity: '0' },
+        },
+        messageIn: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        equalizer: {
+          '0%, 100%': { height: '4px' },
+          '50%': { height: '12px' },
         },
       },
       transitionDuration: {

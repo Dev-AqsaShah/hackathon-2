@@ -11,7 +11,12 @@
       "Bash(git push:*)",
       "Bash(curl:*)",
       "Bash(taskkill:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(powershell:*)",
+      "WebSearch",
+      "WebFetch(domain:openai.github.io)",
+      "Bash(if exist .next rmdir /s /q .next)",
+      "Bash(npm run dev:*)"
     ]
   }
 }

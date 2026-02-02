@@ -1,5 +1,6 @@
 /**
- * Home page - redirects to login or dashboard based on auth status.
+ * Home page - redirects to login or chat based on auth status.
+ * Phase III: AI Chatbot is the primary interface.
  */
 
 import { redirect } from 'next/navigation';
@@ -10,14 +11,21 @@ import { auth } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
-  // Get session from Better Auth
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  try {
+    // Get session from Better Auth
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
 
-  if (session?.user) {
-    redirect('/dashboard');
-  } else {
+    if (session?.user) {
+      // Phase III: Chat is the primary interface
+      redirect('/chat');
+    } else {
+      redirect('/login');
+    }
+  } catch (error) {
+    // If session check fails, redirect to login
+    console.error('Session check failed:', error);
     redirect('/login');
   }
 }

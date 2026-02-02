@@ -16,9 +16,13 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str
+    SYNC_DATABASE_URL: str = ""  # Sync URL for MCP server
 
     # Authentication
     BETTER_AUTH_SECRET: str
+
+    # OpenAI (Phase 3)
+    OPENAI_API_KEY: str = ""
 
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000"

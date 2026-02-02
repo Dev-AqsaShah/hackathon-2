@@ -1,160 +1,188 @@
 <!--
   Sync Impact Report
   ==================
-  Version change: 0.0.0 → 1.0.0 (Initial ratification)
+  Version change: 1.0.0 → 2.0.0 (MAJOR - Architectural paradigm shift)
 
-  Modified principles: N/A (initial version)
+  Modified principles:
+    - Security → Security & User Isolation (expanded for MCP tool authority)
+    - Accuracy → Tool-First Accuracy (redefined around MCP tool execution)
+    - Clarity → Agent Behavior Clarity (redefined for natural language processing)
+    - Reproducibility → Stateless Reproducibility (redefined for stateless server)
+    - Modularity → MCP-Centric Modularity (redefined for agent architecture)
 
   Added sections:
-    - Core Principles (5 principles: Security, Accuracy, Clarity, Reproducibility, Modularity)
-    - Technical Standards (API, Database, Frontend, Authentication, Development Process)
-    - Technology Constraints (Backend, Database, Frontend, Authentication, API Behavior)
-    - Governance
+    - Mandatory Architecture (Architectural Law)
+    - Stateless Server Law
+    - MCP Tool Authority Rule
+    - Tool-First Principle
+    - Agent Behavior Rules
+    - Conversation Persistence Rule
+    - Database Integrity Rule
+    - Error Handling Rule
+    - UI Independence Rule
+    - Natural Language Understanding Requirement
+    - Confirmation Response Rule
+    - System Goal
 
-  Removed sections: N/A (initial version)
+  Removed sections:
+    - API Behavior table (replaced by MCP Tools)
+    - Frontend Standards (replaced by UI Independence Rule)
+    - Authentication Standards (simplified for user_id in MCP calls)
 
   Templates requiring updates:
-    - .specify/templates/plan-template.md: ✅ Compatible (Constitution Check section exists)
-    - .specify/templates/spec-template.md: ✅ Compatible (Requirements section aligns)
-    - .specify/templates/tasks-template.md: ✅ Compatible (Phase structure supports modularity)
+    - .specify/templates/plan-template.md: ⚠ Review needed (Constitution Check section should reference MCP architecture)
+    - .specify/templates/spec-template.md: ✅ Compatible (Requirements section still applicable)
+    - .specify/templates/tasks-template.md: ✅ Compatible (Phase structure supports MCP tool implementation)
 
-  Follow-up TODOs: None
+  Follow-up TODOs:
+    - Review plan-template.md Constitution Check to include MCP tool authority validation
 -->
 
-# Todo Full-Stack Web Application Constitution
+# Todo AI Chatbot Constitution (Phase III)
+
+## System Purpose
+
+This project is an AI-powered Todo management chatbot that allows users to manage tasks through natural language conversation.
+
+The AI agent does NOT manage tasks directly. All task operations MUST be executed strictly via MCP tools. The FastAPI server is stateless—all state MUST be stored and retrieved from the database.
 
 ## Core Principles
 
-### I. Security
+### I. Security & User Isolation
 
-All user data and authentication flows MUST be implemented and verified according to security best practices.
+All user data and task operations MUST be protected through strict user isolation enforced at the MCP tool level.
 
-- All API endpoints MUST require JWT token authentication via `Authorization: Bearer <token>` header
-- Unauthorized requests MUST return HTTP 401 status code
-- User data MUST be isolated: users can only access their own tasks
-- JWT shared secret MUST be stored in `BETTER_AUTH_SECRET` environment variable (never hardcoded)
-- All authentication flows MUST use Better Auth with JWT plugin
+- Every MCP tool call MUST include user_id parameter
+- Users MUST never access another user's tasks
+- Secrets and tokens MUST be stored in environment variables (never hardcoded)
+- The agent MUST NOT expose raw system errors to users
+- All database access MUST be mediated through MCP tools with user_id validation
 
-**Rationale**: Multi-user web applications handle sensitive user data. Security breaches can expose personal information and compromise user trust.
+**Rationale**: Multi-user AI chatbots handle personal task data. User isolation at the tool level prevents data leakage and ensures privacy.
 
-### II. Accuracy
+### II. Tool-First Accuracy
 
-API endpoints, database queries, and frontend data MUST behave deterministically.
+The AI agent MUST execute MCP tools BEFORE generating responses for any task-related operation.
 
-- REST API endpoints MUST return expected HTTP status codes (2xx for success, 4xx for client errors, 5xx for server errors)
-- API responses MUST be validated JSON structures matching defined schemas
-- Database queries MUST enforce user isolation (WHERE user_id = authenticated_user_id)
-- Frontend state MUST accurately reflect backend data after each API response
-- All CRUD operations MUST produce predictable, consistent results
+- If a request involves tasks: Tool Call FIRST → Assistant Response SECOND
+- The agent MUST NOT simulate task operations in text
+- The agent MUST NOT hallucinate task IDs or titles
+- The agent MUST use list_tasks before delete/update if task_id is unknown
+- Tool results MUST be the source of truth for all task data
 
-**Rationale**: Deterministic behavior ensures reliable user experience and enables effective debugging and testing.
+**Rationale**: Tool-first execution ensures deterministic behavior and prevents the agent from providing inaccurate information about task state.
 
-### III. Clarity
+### III. Agent Behavior Clarity
 
-Code, API contracts, and UI behavior MUST be readable, maintainable, and traceable.
+The AI agent MUST understand natural language variations and map them to correct MCP tools with clear confirmation responses.
 
-- Code MUST follow clean code principles with descriptive naming
-- API contracts MUST be documented with clear request/response schemas
-- Frontend components MUST have explicit prop interfaces (TypeScript)
-- Error messages MUST be informative and actionable
-- All implementation MUST be traceable to specifications via spec-driven development
+- The agent MUST correctly interpret phrases like: "remember to...", "I need to...", "add a task...", "done", "remove", "change", "what's pending", "what did I complete"
+- The agent MUST ask clarification if task intent is ambiguous
+- After every successful tool call, the agent MUST confirm the action to the user
+- Error messages MUST be clear, user-friendly, and suggest next actions
 
-**Rationale**: Clear, readable code reduces maintenance burden and enables team collaboration.
+**Rationale**: Natural language understanding is the core value proposition. Clear confirmations build user trust and provide feedback.
 
-### IV. Reproducibility
+### IV. Stateless Reproducibility
 
-Application behavior MUST be reproducible across multiple environments.
+The FastAPI server MUST be completely stateless. Server restart MUST NOT affect conversations.
 
-- Configuration MUST be environment-based (development, staging, production)
-- All environment-specific values MUST use environment variables
-- Database connections MUST use Neon serverless connection pooling for consistent behavior
-- Build and deployment processes MUST be deterministic
-- Tests MUST pass consistently in all environments
+- For every request the server MUST:
+  1. Fetch conversation history from database
+  2. Rebuild messages array for the agent
+  3. Store new user message in database
+  4. Run the agent with MCP tools
+  5. Store assistant response in database
+  6. Return response
+- The server MUST NOT store session state in memory
+- Configuration MUST be environment-based
+- Conversation MUST be resumable using conversation_id
 
-**Rationale**: Reproducible behavior ensures that development, testing, and production environments behave identically.
+**Rationale**: Stateless architecture enables horizontal scaling, crash recovery, and consistent behavior across server restarts.
 
-### V. Modularity
+### V. MCP-Centric Modularity
 
-Frontend, backend, database, and auth components MUST be clearly separated and follow spec-driven architecture.
+The system MUST strictly follow the mandatory architecture with clear separation of concerns.
 
-- Frontend (Next.js) MUST be a separate application from backend (FastAPI)
-- Database operations MUST go through SQLModel ORM layer
-- Authentication MUST be handled by Better Auth (frontend) with JWT verification (backend)
-- Each component MUST have well-defined interfaces and responsibilities
-- All implementation MUST follow the Agentic Dev Stack workflow: Spec → Plan → Tasks → Implement
+```
+ChatKit UI → FastAPI Chat Endpoint → OpenAI Agent → MCP Tools → Database
+```
 
-**Rationale**: Modular architecture enables independent development, testing, and scaling of each layer.
+- The frontend (ChatKit) MUST contain NO business logic
+- The FastAPI server MUST only orchestrate agent calls and message persistence
+- The OpenAI Agent MUST only process natural language and invoke MCP tools
+- MCP Tools are the ONLY authorized interface to the database for task operations
+- All intelligence MUST exist in: Agent + MCP + Backend (not frontend)
+
+**Rationale**: Strict layer separation ensures each component has a single responsibility and can be developed, tested, and scaled independently.
+
+## MCP Tool Authority
+
+These MCP tools are the ONLY source of truth for task operations:
+
+| Tool | Purpose |
+|------|---------|
+| `add_task` | Create a new task |
+| `list_tasks` | Retrieve tasks for a user |
+| `complete_task` | Mark a task as complete |
+| `delete_task` | Remove a task |
+| `update_task` | Modify task details |
+
+The agent is NOT allowed to:
+- Access the database directly
+- Modify tasks without MCP tools
+- Perform hidden logic outside tool calls
 
 ## Technical Standards
 
-### API Standards
+### Agent Standards
 
-- All REST API endpoints MUST return validated JSON structures
-- Status codes MUST follow HTTP semantics: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 404 Not Found, 500 Internal Server Error
-- Request validation MUST use Pydantic schemas
-- All endpoints MUST include proper error handling with structured error responses
+- The agent MUST understand natural language intent
+- The agent MUST map intent to correct MCP tool
+- The agent MUST confirm actions in a friendly way
+- The agent MUST handle errors gracefully
+- The agent MUST never hallucinate task data
 
 ### Database Standards
 
-- All queries MUST enforce user isolation (task ownership verification)
-- Data integrity MUST be enforced via database constraints (PK, FK, UNIQUE, NOT NULL)
-- Timestamps MUST use TIMESTAMPTZ for timezone awareness
-- All database access MUST use parameterized queries (SQL injection prevention)
+- Only MCP tools can create, update, or delete tasks
+- The chat endpoint and agent MUST treat the database as read-only except through MCP tools
+- Every message (user and assistant) MUST be stored in the messages table
+- Conversation MUST be resumable using conversation_id
+
+### API Standards
+
+- The FastAPI chat endpoint MUST be stateless
+- The endpoint MUST rebuild conversation context from database on each request
+- The endpoint MUST store both user messages and assistant responses
+- Error responses MUST be structured and user-friendly
 
 ### Frontend Standards
 
-- UI MUST be responsive across desktop, tablet, and mobile viewports
-- Accessibility MUST meet WCAG 2.1 AA minimum requirements
-- API responses MUST be handled properly including error states
-- Loading states MUST be displayed during async operations
-- JWT token MUST be attached to every API request
-
-### Authentication Standards
-
-- Better Auth MUST issue JWT tokens upon successful login
-- JWT tokens MUST contain user identification claims
-- Backend MUST verify JWT signature using shared secret
-- Session management MUST handle token expiration gracefully
-
-### Development Process Standards
-
-- All features MUST be implemented via Claude Code + Spec-Kit Plus (no manual coding)
-- Implementation MUST follow: /sp.specify → /sp.plan → /sp.tasks → /sp.implement
-- Code MUST be traceable to specifications
-- Each task MUST be independently testable
+- The UI MUST be a thin presentation layer only
+- The UI MUST NOT contain business logic
+- The UI MUST send messages to the chat endpoint and display responses
+- The UI MUST handle loading and error states gracefully
 
 ## Technology Constraints
 
 ### Backend
 - Python 3.13+
 - FastAPI framework
-- SQLModel ORM
+- OpenAI Agents SDK
 
 ### Database
-- Neon Serverless PostgreSQL
-- Connection pooling for serverless environments
+- Neon Serverless PostgreSQL (or compatible)
+- Messages table for conversation persistence
+- Tasks table for task storage
 
 ### Frontend
-- Next.js 16+ with App Router
-- TypeScript required
-- Server components by default, client components only when necessary
+- ChatKit UI (or compatible chat interface)
+- No business logic in frontend
 
-### Authentication
-- Better Auth with JWT plugin
-- Shared secret stored in BETTER_AUTH_SECRET environment variable
-
-### API Behavior
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/{user_id}/tasks` | GET | List all tasks for user |
-| `/api/{user_id}/tasks` | POST | Create new task |
-| `/api/{user_id}/tasks/{id}` | GET | Get task details |
-| `/api/{user_id}/tasks/{id}` | PUT | Update task |
-| `/api/{user_id}/tasks/{id}` | DELETE | Delete task |
-| `/api/{user_id}/tasks/{id}/complete` | PATCH | Toggle task completion |
-
-All endpoints require: `Authorization: Bearer <token>` header
+### Agent
+- OpenAI-compatible agent framework
+- MCP (Model Context Protocol) tools for task operations
 
 ## Governance
 
@@ -164,7 +192,7 @@ All endpoints require: `Authorization: Bearer <token>` header
 2. Changes affecting core principles require explicit approval
 3. All amendments MUST include migration plan for existing implementations
 4. Version MUST be incremented according to semantic versioning:
-   - MAJOR: Principle removal or incompatible redefinition
+   - MAJOR: Architectural paradigm change or principle redefinition
    - MINOR: New principle or section addition
    - PATCH: Clarifications and non-semantic changes
 
@@ -172,10 +200,18 @@ All endpoints require: `Authorization: Bearer <token>` header
 
 - All code reviews MUST verify compliance with constitution principles
 - Architecture decisions MUST be documented via ADRs when significant
-- Non-compliance MUST be justified and documented in Complexity Tracking
+- Non-compliance MUST be justified and documented
 
 ### Runtime Guidance
 
 Refer to `CLAUDE.md` for agent delegation rules and development workflow.
 
-**Version**: 1.0.0 | **Ratified**: 2025-01-22 | **Last Amended**: 2025-01-22
+## System Goal
+
+The goal is NOT to build a Todo app.
+
+The goal is to demonstrate:
+
+**AI Agent + MCP Tools + Stateless Architecture + Spec-Driven Development**
+
+**Version**: 2.0.0 | **Ratified**: 2025-01-22 | **Last Amended**: 2026-01-31
