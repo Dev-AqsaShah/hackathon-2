@@ -1,4 +1,4 @@
-"""FastAPI application entry point for Todo Full-Stack Web Application (Phase-2)."""
+"""FastAPI application entry point for Todo AI Chatbot (Phase-3)."""
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -8,7 +8,7 @@ from app.core.config import settings
 from app.core.database import close_db_connection, create_db_and_tables
 from app.api.routes import tasks
 # Import models so SQLModel registers them for table creation
-from app.models import User, Task  # noqa: F401
+from app.models import User, Task, Conversation, Message  # noqa: F401
 
 
 @asynccontextmanager
@@ -60,5 +60,9 @@ async def health_check():
     return {"status": "ok"}
 
 
-# Register task routes
+# Register task routes (Phase 2 REST API)
 app.include_router(tasks.router, tags=["Tasks"])
+
+# Chat routes (Phase 3 AI Chatbot)
+from app.api.routes import chat
+app.include_router(chat.router, tags=["Chat"])
