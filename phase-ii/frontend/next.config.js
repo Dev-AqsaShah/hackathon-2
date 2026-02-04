@@ -16,6 +16,15 @@ const nextConfig = {
     },
   },
 
+  // Turbopack configuration (default bundler in Next.js 16)
+  // Explicit resolve alias needed because Turbopack misresolves the
+  // generic @/* tsconfig path alias as an npm-scoped package.
+  turbopack: {
+    resolveAlias: {
+      '@/*': './*',
+    },
+  },
+
   // API proxy configuration (if needed for CORS bypass in development)
   async rewrites() {
     return [

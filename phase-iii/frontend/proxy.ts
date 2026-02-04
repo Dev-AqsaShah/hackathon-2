@@ -1,21 +1,21 @@
 /**
- * Next.js middleware for authentication and protected routes.
- * Uses Better Auth session verification.
+ * Next.js 16 proxy for authentication and protected routes.
+ * Replaces the deprecated middleware.ts convention.
+ * Uses Better Auth session cookie verification.
  */
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Routes that require authentication
-const protectedRoutes = ['/dashboard', '/tasks'];
+const protectedRoutes = ['/dashboard', '/tasks', '/chat'];
 
 // Routes that should redirect to dashboard if already authenticated
 const authRoutes = ['/login', '/signup'];
 
-export async function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check if the route is protected or auth route
   const isProtectedRoute = protectedRoutes.some((route) =>
     pathname.startsWith(route)
   );
@@ -47,6 +47,7 @@ export const config = {
   matcher: [
     '/dashboard/:path*',
     '/tasks/:path*',
+    '/chat/:path*',
     '/login',
     '/signup',
   ],
