@@ -1,6 +1,6 @@
 /**
- * Next.js middleware for authentication and protected routes.
- * Uses Better Auth session verification.
+ * Next.js 16 proxy for authentication and protected routes.
+ * (Previously middleware)
  */
 
 import { NextResponse } from 'next/server';
@@ -12,10 +12,9 @@ const protectedRoutes = ['/dashboard', '/tasks'];
 // Routes that should redirect to dashboard if already authenticated
 const authRoutes = ['/login', '/signup'];
 
-export async function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check if the route is protected or auth route
   const isProtectedRoute = protectedRoutes.some((route) =>
     pathname.startsWith(route)
   );
@@ -24,7 +23,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith(route)
   );
 
-  // Get Better Auth session cookie (uses cookiePrefix: "todo-app")
+  // Better Auth session cookie
   const sessionCookie = request.cookies.get('todo-app.session_token');
   const isAuthenticated = !!sessionCookie?.value;
 
