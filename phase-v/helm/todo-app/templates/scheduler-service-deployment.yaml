@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-scheduler-service
+  labels:
+    app: todo-scheduler-service
+spec:
+  replicas: {{ .Values.schedulerService.replicaCount }}
+  selector:
+    matchLabels:
+      app: todo-scheduler-service
+  template:
+    metadata:
+      labels:
+        app: todo-scheduler-service
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "scheduler-service"
+        dapr.io/app-port: "8002"
+        dapr.io/config: "dapr-config"
+    spec:
+      containers:
+        - name: scheduler-service
+          image: "{{ .Values.schedulerService.image.repository }}:{{ .Values.schedulerService.image.tag }}"
+          imagePullPolicy: {{ .Values.schedulerService.image.pullPolicy }}
+          ports:
+            - containerPort: 8002
+          env:
+            {{- range $key, $value := .Values.schedulerService.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            failureThreshold: 3

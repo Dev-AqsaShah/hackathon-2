@@ -1,0 +1,77 @@
+# ==================== Backend (FastAPI) ====================
+backend:
+  replicaCount: 1
+  image:
+    repository: todo-backend
+    tag: latest
+    pullPolicy: Never  # Minikube uses local images
+  service:
+    type: ClusterIP
+    port: 8000
+  env:
+    DATABASE_URL: "postgresql+asyncpg://neondb_owner:postgres123@postgres-postgresql.default.svc.cluster.local:5432/neondb"
+    SYNC_DATABASE_URL: "postgresql://neondb_owner:postgres123@postgres-postgresql.default.svc.cluster.local:5432/neondb"
+    BETTER_AUTH_SECRET: "2adQ901mBtenedKzUqiuRNjcieJ1j2UsxtXIKbi_8y0"
+    CORS_ORIGINS: "*"
+    FRONTEND_URL: "http://localhost:3000"
+    APP_NAME: "Todo Full-Stack API"
+    APP_VERSION: "1.0.0"
+    DEBUG: "True"
+    OPENAI_API_KEY: "your-openai-api-key-here"  # Replace with your actual key
+
+# ==================== Frontend (Next.js) ====================
+frontend:
+  replicaCount: 1
+  image:
+    repository: todo-frontend
+    tag: latest
+    pullPolicy: Never  # Minikube uses local images
+  service:
+    type: NodePort
+    port: 3000
+    nodePort: 30000
+  env:
+    NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+    NEXT_PUBLIC_API_URL: "http://todo-backend-svc.default.svc.cluster.local:8000"
+    NEXT_PUBLIC_BACKEND_URL: "http://todo-backend-svc.default.svc.cluster.local:8000"
+    BETTER_AUTH_SECRET: "2adQ901mBtenedKzUqiuRNjcieJ1j2UsxtXIKbi_8y0"
+    DATABASE_URL: "postgresql://neondb_owner:npg_kQN3WUSsr1FV@ep-young-union-ahndts80-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
+    NEXT_PUBLIC_APP_NAME: "Todo Full-Stack App"
+    NODE_ENV: "production"
+
+# ==================== Notification Service ====================
+notificationService:
+  replicaCount: 1
+  image:
+    repository: todo-notification-service
+    tag: latest
+    pullPolicy: Never
+  service:
+    type: ClusterIP
+    port: 8001
+  env:
+    DATABASE_URL: "postgresql://neondb_owner:postgres123@postgres-postgresql.default.svc.cluster.local:5432/neondb"
+    DAPR_HTTP_PORT: "3500"
+
+# ==================== Scheduler Service ====================
+schedulerService:
+  replicaCount: 1
+  image:
+    repository: todo-scheduler-service
+    tag: latest
+    pullPolicy: Never
+  service:
+    type: ClusterIP
+    port: 8002
+  env:
+    DATABASE_URL: "postgresql://neondb_owner:postgres123@postgres-postgresql.default.svc.cluster.local:5432/neondb"
+    DAPR_HTTP_PORT: "3500"
+    DAPR_STATESTORE_NAME: "task-statestore"
+
+# ==================== Kafka & Redis ====================
+kafka:
+  brokers: "kafka:9092"
+
+redis:
+  host: "redis"
+  port: "6379"

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-notification-service-svc
+  labels:
+    app: todo-notification-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.notificationService.service.port }}
+      targetPort: 8001
+      protocol: TCP
+  selector:
+    app: todo-notification-service
