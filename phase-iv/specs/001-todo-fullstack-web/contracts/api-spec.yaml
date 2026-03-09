@@ -1,0 +1,460 @@
+openapi: 3.1.0
+info:
+  title: Todo Full-Stack Web Application API
+  version: 1.0.0
+  description: |
+    RESTful API for multi-user todo application with JWT authentication.
+
+    **Authentication**: All endpoints require JWT token in Authorization header.
+
+    **User Isolation**: All operations are scoped to the authenticated user.
+
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server (TBD)
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: todos
+    description: Todo CRUD operations
+  - name: auth
+    description: Authentication (handled by Better Auth on frontend)
+
+paths:
+  /api/users/{user_id}/todos:
+    parameters:
+      - $ref: '#/components/parameters/UserIdPath'
+
+    get:
+      summary: List all todos for authenticated user
+      description: |
+        Returns all todos belonging to the authenticated user.
+        Results are ordered by creation date (newest first).
+
+        **Authorization**: JWT user_id must match path user_id parameter.
+      tags:
+        - todos
+      operationId: listTodos
+      responses:
+        '200':
+          description: Successful response with list of todos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  todos:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Todo'
+                  count:
+                    type: integer
+                    description: Total number of todos
+                    example: 5
+              examples:
+                with_todos:
+                  summary: User with todos
+                  value:
+                    todos:
+                      - id: 1
+                        user_id: 123
+                        title: "Buy groceries"
+                        is_completed: false
+                        created_at: "2026-01-22T10:30:00Z"
+                        updated_at: "2026-01-22T10:30:00Z"
+                      - id: 2
+                        user_id: 123
+                        title: "Finish project"
+                        is_completed: true
+                        created_at: "2026-01-21T14:15:00Z"
+                        updated_at: "2026-01-22T09:00:00Z"
+                    count: 2
+                empty_list:
+                  summary: User with no todos
+                  value:
+                    todos: []
+                    count: 0
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create a new todo
+      description: |
+        Creates a new todo for the authenticated user.
+
+        **Authorization**: JWT user_id must match path user_id parameter.
+      tags:
+        - todos
+      operationId: createTodo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TodoCreate'
+            examples:
+              simple_todo:
+                summary: Simple todo
+                value:
+                  title: "Complete Phase-2 implementation"
+      responses:
+        '201':
+          description: Todo created successfully
+          headers:
+            Location:
+              description: URL of the created todo
+              schema:
+                type: string
+                example: /api/users/123/todos/1
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+              examples:
+                created_todo:
+                  summary: Newly created todo
+                  value:
+                    id: 1
+                    user_id: 123
+                    title: "Complete Phase-2 implementation"
+                    is_completed: false
+                    created_at: "2026-01-22T10:30:00Z"
+                    updated_at: "2026-01-22T10:30:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/users/{user_id}/todos/{todo_id}:
+    parameters:
+      - $ref: '#/components/parameters/UserIdPath'
+      - $ref: '#/components/parameters/TodoIdPath'
+
+    get:
+      summary: Get a specific todo
+      description: |
+        Returns a single todo by ID.
+
+        **Authorization**: JWT user_id must match path user_id parameter.
+        **Ownership**: Todo must belong to authenticated user.
+      tags:
+        - todos
+      operationId: getTodo
+      responses:
+        '200':
+          description: Successful response with todo details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Update a todo
+      description: |
+        Updates the title of an existing todo.
+
+        **Authorization**: JWT user_id must match path user_id parameter.
+        **Ownership**: Todo must belong to authenticated user.
+      tags:
+        - todos
+      operationId: updateTodo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TodoUpdate'
+            examples:
+              update_title:
+                summary: Update todo title
+                value:
+                  title: "Complete Phase-2 implementation and testing"
+      responses:
+        '200':
+          description: Todo updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete a todo
+      description: |
+        Permanently deletes a todo.
+
+        **Authorization**: JWT user_id must match path user_id parameter.
+        **Ownership**: Todo must belong to authenticated user.
+      tags:
+        - todos
+      operationId: deleteTodo
+      responses:
+        '200':
+          description: Todo deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Todo deleted successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/users/{user_id}/todos/{todo_id}/complete:
+    parameters:
+      - $ref: '#/components/parameters/UserIdPath'
+      - $ref: '#/components/parameters/TodoIdPath'
+
+    patch:
+      summary: Toggle todo completion status
+      description: |
+        Toggles the completion status of a todo (complete ↔ incomplete).
+
+        **Authorization**: JWT user_id must match path user_id parameter.
+        **Ownership**: Todo must belong to authenticated user.
+      tags:
+        - todos
+      operationId: toggleTodoComplete
+      responses:
+        '200':
+          description: Todo completion status toggled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+              examples:
+                marked_complete:
+                  summary: Todo marked as complete
+                  value:
+                    id: 1
+                    user_id: 123
+                    title: "Buy groceries"
+                    is_completed: true
+                    created_at: "2026-01-22T10:30:00Z"
+                    updated_at: "2026-01-22T15:45:00Z"
+                marked_incomplete:
+                  summary: Todo marked as incomplete
+                  value:
+                    id: 1
+                    user_id: 123
+                    title: "Buy groceries"
+                    is_completed: false
+                    created_at: "2026-01-22T10:30:00Z"
+                    updated_at: "2026-01-22T15:50:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token issued by Better Auth on frontend.
+        Include in Authorization header as: `Bearer <token>`
+
+  parameters:
+    UserIdPath:
+      name: user_id
+      in: path
+      required: true
+      description: User ID (must match authenticated user's ID from JWT)
+      schema:
+        type: integer
+        example: 123
+
+    TodoIdPath:
+      name: todo_id
+      in: path
+      required: true
+      description: Todo ID
+      schema:
+        type: integer
+        example: 1
+
+  schemas:
+    Todo:
+      type: object
+      description: A todo item belonging to a user
+      required:
+        - id
+        - user_id
+        - title
+        - is_completed
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          description: Unique todo identifier
+          example: 1
+        user_id:
+          type: integer
+          description: ID of the user who owns this todo
+          example: 123
+        title:
+          type: string
+          description: Todo task description
+          minLength: 1
+          maxLength: 1000
+          example: "Buy groceries"
+        is_completed:
+          type: boolean
+          description: Whether the todo is completed
+          example: false
+        created_at:
+          type: string
+          format: date-time
+          description: When the todo was created (ISO 8601)
+          example: "2026-01-22T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: When the todo was last updated (ISO 8601)
+          example: "2026-01-22T10:30:00Z"
+
+    TodoCreate:
+      type: object
+      description: Request body for creating a new todo
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          description: Todo task description
+          minLength: 1
+          maxLength: 1000
+          example: "Complete Phase-2 implementation"
+
+    TodoUpdate:
+      type: object
+      description: Request body for updating a todo
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          description: Updated todo task description
+          minLength: 1
+          maxLength: 1000
+          example: "Complete Phase-2 implementation and testing"
+
+    Error:
+      type: object
+      description: Error response structure
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Human-readable error message
+          example: "Todo not found"
+        errors:
+          type: array
+          description: Detailed validation errors (when applicable)
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: Field name that failed validation
+                example: "title"
+              message:
+                type: string
+                description: Validation error message
+                example: "Title must not be empty"
+
+  responses:
+    BadRequest:
+      description: Bad request - validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            validation_error:
+              summary: Validation error
+              value:
+                detail: "Validation error"
+                errors:
+                  - field: "title"
+                    message: "Title must not be empty"
+
+    Unauthorized:
+      description: Unauthorized - missing or invalid JWT token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            missing_token:
+              summary: Missing JWT token
+              value:
+                detail: "Authorization header missing"
+            invalid_token:
+              summary: Invalid JWT token
+              value:
+                detail: "Invalid or expired token"
+            wrong_user:
+              summary: JWT user_id doesn't match path user_id
+              value:
+                detail: "Unauthorized access to user resources"
+
+    NotFound:
+      description: Resource not found or doesn't belong to user
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            todo_not_found:
+              summary: Todo not found
+              value:
+                detail: "Todo not found"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            server_error:
+              summary: Generic server error
+              value:
+                detail: "An unexpected error occurred"

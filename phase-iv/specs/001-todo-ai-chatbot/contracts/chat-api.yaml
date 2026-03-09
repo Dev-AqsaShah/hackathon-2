@@ -1,0 +1,250 @@
+openapi: 3.1.0
+info:
+  title: Todo AI Chatbot API
+  description: Chat endpoint for AI-powered todo management
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+paths:
+  /api/{user_id}/chat:
+    post:
+      summary: Send a chat message
+      description: |
+        Sends a natural language message to the AI assistant.
+        The agent processes the message and may invoke MCP tools
+        for task operations before returning a response.
+      operationId: sendChatMessage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: The authenticated user's ID (must match JWT)
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            examples:
+              addTask:
+                summary: Add a task
+                value:
+                  message: "Add buy groceries to my list"
+                  conversation_id: null
+              listTasks:
+                summary: List tasks
+                value:
+                  message: "What are my tasks?"
+                  conversation_id: "550e8400-e29b-41d4-a716-446655440000"
+              completeTask:
+                summary: Complete a task
+                value:
+                  message: "I finished buying groceries"
+                  conversation_id: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Successful response from the assistant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+              examples:
+                taskAdded:
+                  summary: Task added confirmation
+                  value:
+                    message: "Task 'buy groceries' added to your list."
+                    conversation_id: "550e8400-e29b-41d4-a716-446655440000"
+                taskList:
+                  summary: Task list response
+                  value:
+                    message: "Here are your tasks:\n1. Buy groceries\n2. Call mom\n3. Pick up dry cleaning"
+                    conversation_id: "550e8400-e29b-41d4-a716-446655440000"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Message cannot be empty"
+                code: "INVALID_REQUEST"
+        '401':
+          description: Unauthorized - Invalid or missing JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Invalid or expired authentication token"
+                code: "UNAUTHORIZED"
+        '403':
+          description: Forbidden - User ID mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "You do not have permission to access this resource"
+                code: "FORBIDDEN"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "An unexpected error occurred. Please try again."
+                code: "INTERNAL_ERROR"
+
+  /api/{user_id}/chat/history:
+    get:
+      summary: Get conversation history
+      description: Retrieves the user's conversation history for display on page load
+      operationId: getChatHistory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: The authenticated user's ID (must match JWT)
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of messages to return
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+      responses:
+        '200':
+          description: Conversation history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationHistory'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Better Auth JWT token
+
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: The user's natural language message
+          minLength: 1
+          maxLength: 2000
+          example: "Add buy groceries to my list"
+        conversation_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Optional conversation ID for continuing a conversation
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+    ChatResponse:
+      type: object
+      required:
+        - message
+        - conversation_id
+      properties:
+        message:
+          type: string
+          description: The assistant's response message
+          example: "Task 'buy groceries' added to your list."
+        conversation_id:
+          type: string
+          format: uuid
+          description: The conversation ID for future messages
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+    ConversationHistory:
+      type: object
+      required:
+        - conversation_id
+        - messages
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+          description: The conversation ID
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/HistoryMessage'
+
+    HistoryMessage:
+      type: object
+      required:
+        - id
+        - role
+        - content
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Message unique identifier
+        role:
+          type: string
+          enum: [user, assistant]
+          description: Who sent the message
+        content:
+          type: string
+          description: Message content
+        created_at:
+          type: string
+          format: date-time
+          description: When the message was created
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - code
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          example: "Invalid or expired authentication token"
+        code:
+          type: string
+          description: Machine-readable error code
+          enum:
+            - INVALID_REQUEST
+            - UNAUTHORIZED
+            - FORBIDDEN
+            - NOT_FOUND
+            - INTERNAL_ERROR
+          example: "UNAUTHORIZED"
