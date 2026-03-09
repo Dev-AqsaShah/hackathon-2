@@ -1,0 +1,251 @@
+version: "3.8"
+
+services:
+  # ==================== Infrastructure ====================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.3
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo ruok | nc -w 2 localhost 2181 | grep imok"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    networks:
+      - todo-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.3
+    container_name: kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 20s
+      timeout: 10s
+      start_period: 30s
+      retries: 5
+    networks:
+      - todo-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - todo-network
+
+  dapr-placement:
+    image: daprio/dapr:1.13.0
+    container_name: dapr-placement
+    command: ["./placement", "-port", "50006"]
+    ports:
+      - "50006:50006"
+    networks:
+      - todo-network
+
+  # ==================== Backend (FastAPI) ====================
+  backend:
+    image: todo-backend:latest
+    container_name: todo-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - CORS_ORIGINS=http://localhost:3000
+      - FRONTEND_URL=http://localhost:3000
+      - DAPR_HTTP_PORT=3500
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - todo-network
+
+  backend-dapr:
+    image: daprio/daprd:1.13.0
+    container_name: backend-dapr
+    command:
+      - "./daprd"
+      - "--app-id"
+      - "backend"
+      - "--app-port"
+      - "8000"
+      - "--dapr-http-port"
+      - "3500"
+      - "--components-path"
+      - "/dapr/components"
+      - "--placement-host-address"
+      - "dapr-placement:50006"
+    volumes:
+      - ./dapr/components:/dapr/components:ro
+    network_mode: "service:backend"
+    depends_on:
+      - backend
+      - dapr-placement
+
+  # ==================== Notification Service ====================
+  notification-service:
+    image: todo-notification-service:latest
+    container_name: notification-service
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    env_file:
+      - ./backend/.env
+    environment:
+      - DAPR_HTTP_PORT=3501
+    depends_on:
+      backend:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - todo-network
+
+  notification-service-dapr:
+    image: daprio/daprd:1.13.0
+    container_name: notification-service-dapr
+    command:
+      - "./daprd"
+      - "--app-id"
+      - "notification-service"
+      - "--app-port"
+      - "8001"
+      - "--dapr-http-port"
+      - "3501"
+      - "--components-path"
+      - "/dapr/components"
+      - "--placement-host-address"
+      - "dapr-placement:50006"
+    volumes:
+      - ./dapr/components:/dapr/components:ro
+    network_mode: "service:notification-service"
+    depends_on:
+      - notification-service
+      - dapr-placement
+
+  # ==================== Scheduler Service ====================
+  scheduler-service:
+    image: todo-scheduler-service:latest
+    container_name: scheduler-service
+    build:
+      context: ./scheduler-service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    env_file:
+      - ./backend/.env
+    environment:
+      - DAPR_HTTP_PORT=3502
+    depends_on:
+      backend:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - todo-network
+
+  scheduler-service-dapr:
+    image: daprio/daprd:1.13.0
+    container_name: scheduler-service-dapr
+    command:
+      - "./daprd"
+      - "--app-id"
+      - "scheduler-service"
+      - "--app-port"
+      - "8002"
+      - "--dapr-http-port"
+      - "3502"
+      - "--components-path"
+      - "/dapr/components"
+      - "--placement-host-address"
+      - "dapr-placement:50006"
+    volumes:
+      - ./dapr/components:/dapr/components:ro
+    network_mode: "service:scheduler-service"
+    depends_on:
+      - scheduler-service
+      - dapr-placement
+
+  # ==================== Frontend (Next.js) ====================
+  frontend:
+    image: todo-frontend:latest
+    container_name: todo-frontend
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./frontend/.env.local
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+      - NEXT_PUBLIC_BACKEND_URL=http://backend:8000
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - todo-network
+
+networks:
+  todo-network:
+    driver: bridge

@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(sp.constitution)",
+      "Bash(pip install:*)",
+      "Bash(alembic upgrade:*)",
+      "Bash(python:*)",
+      "Bash(git fetch:*)",
+      "Bash(pwsh -NoProfile -ExecutionPolicy Bypass -File create-new-feature.ps1 -Json -Number 1 -ShortName \"todo-api-backend\" \"Todo Full-Stack Web Application — Backend & API Specification\")",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File \".specify/scripts/powershell/check-prerequisites.ps1\" -Json)",
+      "Bash(git push:*)",
+      "Bash(curl:*)",
+      "Bash(taskkill:*)",
+      "Bash(npm run build:*)",
+      "Bash(powershell:*)",
+      "WebSearch",
+      "WebFetch(domain:openai.github.io)",
+      "Bash(if exist .next rmdir /s /q .next)",
+      "Bash(npm run dev:*)",
+      "Bash(cmd.exe /c \"where minikube\")",
+      "Bash(kubectl exec:*)"
+    ]
+  }
+}
